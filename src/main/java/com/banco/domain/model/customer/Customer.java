@@ -1,27 +1,43 @@
 package com.banco.domain.model.customer;
 
-import com.banco.domain.exceptions.DomainException;
 import java.util.UUID;
+import com.banco.domain.model.vo.Email;
 
-public abstract class customer {
-    private final string idNumber;
-    private final LocalDate birthDate;
 
-    public NaturalPerson(UUID id, String name, Emial email, String idNumber, LocalDate birthDate) {
-        super(id, name, email);
+ // Clase base para todos los clientes del banco.
+ // Se define como abstracta porque no puede haber un cliente genérico.
 
-        // Regla de Negocio: Validación de mayoría de edad
-        if (Period.between(birthDate, LocalDate.now()).getYears() < 18) {
-            throw new DomainException("El cliente debe ser mayor de edad para abrir una cuenta");
-        }
+public abstract class Customer {
+    private final UUID id;
+    private final String name;
+    private final Email email;
+    private boolean active;
 
-        this.idNumber = idNumber;
-        this.birthDate = birthDate;
+    protected Customer(UUID id, String name, Email email) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.active = true; // Por defecto todo cliente inicia activo
     }
-    public String getIdNumber() {
-        return idNumber;
+
+    // Getters necesarios para que las clases hijas y el Main puedan ver la info
+    public UUID getId() {
+        return id;
     }
-    public LocalDate getBirthDate() {
-        return birthDate;
+
+    public String getName() {
+        return name;
+    }
+
+    public Email getEmail() {
+        return email;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

@@ -1,7 +1,7 @@
-package com.banco.domain.model.accout;
+package com.banco.domain.model.account;
 
 public enum AccountStatus {
-    ACTIVE,
-    INACTIVE,
-    CLOSED
+    ACTIVA,
+    INACTIVA,
+    CERRADA
 }
