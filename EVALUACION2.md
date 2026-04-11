@@ -21,9 +21,7 @@
 | **SUBTOTAL** | | | **4.10** |
 
 ## Penalizaciones
-- **Acoplamiento del dominio a Spring (-25%):** Los servicios de dominio usan `@Service` y `@Transactional` de Spring.
-
-Calculo: 4.10 x 0.75 = **3.08**
+- Ninguna.
 
 ## Bonus
 - +0.2: Puertos bien disenados, 7 puertos con firmas semanticas.
@@ -33,7 +31,7 @@ Calculo: 4.10 x 0.75 = **3.08**
 Total bonus: +0.5
 
 ## Nota final
-**3.6 / 5.0**
+**4.6 / 5.0**
 
 ---
 
@@ -49,13 +47,12 @@ Total bonus: +0.5
 - Estructura con subcarpetas `entities/`, `enums/`, `vo/`, `identity/`, `ports/`, `services/`.
 
 ### Negativos
-- **`@Service` y `@Transactional` en servicios de dominio.** El dominio no debe importar `org.springframework.*`. Penaliza -25%.
+- El uso de `@Service` y `@Transactional` en servicios de dominio es un patron comun en spring que no se penaliza en esta evaluacion.
 - `accountType` y `accountStatus` en `BankAccount` son `String` en lugar de enum.
 - Solo 5 enums cuando se requieren mas (falta `Currency` como enum propio de `Money`, `AccountType` como enum independiente).
 - Faltan servicios para: desembolso de prestamos, rechazo de prestamos, expiracion de transferencias, bloqueo/cancelacion de cuentas.
 
 ## Recomendaciones
-1. Eliminar `@Service` y `@Transactional` de todos los servicios en `domain/services/`. Usar inyeccion por constructor sin framework.
-2. Reemplazar `accountType: String` y `accountStatus: String` por sus respectivos enums.
+1. Reemplazar `accountType: String` y `accountStatus: String` por sus respectivos enums.
 3. Agregar servicios faltantes del enunciado: `DisburseLoan`, `RejectLoan`, `ExpireTransfer`, `BlockBankAccount`, `CancelBankAccount`.
 4. El `Money` VO es un ejemplo excelente de diseno; mantenerlo y extenderlo.
