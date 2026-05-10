@@ -2,6 +2,8 @@ package app.domain.models.vo;
 
 import app.domain.models.enums.Currency;
 import app.domain.Exceptions.BusinessException;
+import com.fasterxml.jackson.annotation.JsonCreator; 
+import com.fasterxml.jackson.annotation.JsonProperty; 
 import lombok.Getter;
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -11,15 +13,23 @@ public class Money {
     private final BigDecimal amount;
     private final Currency currency;
 
-    public Money(BigDecimal amount, Currency currency) {
+    // Le decimos a Spring Boot cómo construir este objeto desde el JSON
+    @JsonCreator 
+    public Money(
+            @JsonProperty("amount") BigDecimal amount, 
+            @JsonProperty("currency") Currency currency
+    ) {
         if (amount == null) {
             throw new BusinessException("El monto no puede ser nulo.");
+        }
+        if (currency == null) {
+            throw new BusinessException("La moneda no puede ser nula.");
         }
         this.amount = amount;
         this.currency = currency;
     }
 
-    // Método para sumar dinero asegurando que sea la misma moneda
+    
     public Money add(Money other) {
         checkCurrency(other);
         return new Money(this.amount.add(other.getAmount()), this.currency);
@@ -54,7 +64,7 @@ public class Money {
     }
 
     public int compareTo(Money other) {
-        checkCurrency(other); // Reutilizamos tu validación para no comparar Peras con Manzanas (COP vs USD)
+        checkCurrency(other); 
         return this.amount.compareTo(other.getAmount());
     }
 }

@@ -1,6 +1,5 @@
 package app.domain.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import app.domain.Exceptions.BusinessException;
@@ -17,13 +16,12 @@ public class CreateUser {
     private final UserPort userPort;
     private final LogOperation logOperation;
 
-    @Autowired
     public CreateUser(UserPort userPort, LogOperation logOperation) {
         this.userPort = userPort;
         this.logOperation = logOperation;
     }
 
-    public void createUser(User user) throws BusinessException {
+    public void execute(User user) throws BusinessException {
         // Validaciones de unicidad
         if (userPort.existsByIdentificationId(user.getIdentificationId())) {
             throw new BusinessException("Ya existe un usuario con este ID de identificación.");

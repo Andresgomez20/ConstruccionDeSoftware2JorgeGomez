@@ -20,14 +20,11 @@ public class RegisterCompany {
         this.logOperation = logOperation;
     }
 
-    public void register(CompanyClient company) {
+    public void execute (CompanyClient company) {
         // Validación de unicidad por NIT
         if (companyClientPort.existsByTaxIdentificationNumber(company.getTaxIdentificationNumber())) {
             throw new BusinessException("Ya existe una empresa con este número de identificación tributaria (NIT).");
-        }
-        
-        // Guardar en MySQL
-        companyClientPort.save(company);
+        }        
 
         //REGISTRO EN BITÁCORA (MongoDB)
         Map<String, Object> details = new HashMap<>();
@@ -36,6 +33,9 @@ public class RegisterCompany {
         details.put("email", company.getEmail());
         details.put("legalRepresentative", company.getLegalRepresentativeId());
         details.put("clientType", "COMPANY");
+
+        // Guardar en MySQL
+        companyClientPort.save(company);
 
         logOperation.record(
             0L, 

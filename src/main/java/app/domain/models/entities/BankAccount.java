@@ -5,7 +5,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.Currency;
 
+import app.domain.models.enums.AccountStatus;
+import app.domain.models.enums.AccountType;
 import app.domain.models.vo.Money;
 
 @Setter
@@ -14,11 +17,11 @@ import app.domain.models.vo.Money;
 public class BankAccount {
 
     private String accountNumber;
-    private String accountType; 
+    private AccountType accountType;
+    private AccountStatus accountStatus;
     private String titularId;
     private Money currentBalance;
-    private String currency;
-    private String accountStatus; 
+    private Currency currency;
     private LocalDate openingDate;
 
 }

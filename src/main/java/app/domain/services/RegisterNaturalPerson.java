@@ -20,13 +20,11 @@ public class RegisterNaturalPerson {
         this.logOperation = logOperation;
     }
 
-    public void register(NaturalPersonClient client) {
+    public void execute (NaturalPersonClient client) {
         if (naturalPersonClientPort.existsByIdentificationNumber(client.getIdentificationNumber())) {
             throw new BusinessException("Ya existe un cliente persona natural con este número de identificación.");
         }
         
-        // Guardar en MySQL
-        naturalPersonClientPort.save(client);
 
         // REGISTRO EN BITÁCORA
         Map<String, Object> details = new HashMap<>();
@@ -35,6 +33,9 @@ public class RegisterNaturalPerson {
         details.put("email", client.getEmail());
         details.put("address", client.getAddress());
         details.put("clientType", "NATURAL");
+
+        // Guardar en MySQL
+        naturalPersonClientPort.save(client);
 
         logOperation.record(
             0L, 

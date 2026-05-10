@@ -1,6 +1,5 @@
 package app.domain.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import app.domain.Exceptions.BusinessException;
@@ -12,18 +11,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class CreateBankAccount {
+public class CreateBankAccount { 
 
     private final BankAccountPort bankAccountPort;
-    private final LogOperation logOperation; // 1. Inyectamos la bitácora
+    private final LogOperation logOperation;
 
-    @Autowired
     public CreateBankAccount(BankAccountPort bankAccountPort, LogOperation logOperation) {
         this.bankAccountPort = bankAccountPort;
         this.logOperation = logOperation;
     }
-
-    public void createBankAccount(BankAccount bankAccount) throws BusinessException {
+    
+    public void execute(BankAccount bankAccount) throws BusinessException {
         // Regla de negocio: El número de cuenta debe ser único
         if (bankAccountPort.existsByAccountNumber(bankAccount.getAccountNumber())) {
             throw new BusinessException("Ya existe una cuenta bancaria con este número");
@@ -34,15 +32,15 @@ public class CreateBankAccount {
             bankAccount.setOpeningDate(LocalDate.now());
         }
 
-        // Guardar en MySQL
-        bankAccountPort.save(bankAccount);
-
         // REGISTRO EN BITÁCORA
         Map<String, Object> details = new HashMap<>();
         details.put("accountType", bankAccount.getAccountType());
         details.put("initialBalance", bankAccount.getCurrentBalance());
         details.put("currency", "COP"); // O la que maneje tu modelo
         details.put("ownerId", bankAccount.getTitularId());
+
+        // Guardar en MySQL        
+        bankAccountPort.save(bankAccount);
 
         logOperation.record(
             0L, // ID 0 o System, ya que suele ser un proceso administrativo o de apertura inicial

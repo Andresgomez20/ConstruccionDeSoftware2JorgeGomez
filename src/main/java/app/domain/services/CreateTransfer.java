@@ -10,6 +10,7 @@ import app.domain.models.enums.TransferStatus;
 import app.domain.models.vo.Money;
 import app.domain.ports.BankAccountPort;
 import app.domain.ports.TransferPort;
+import app.domain.models.enums.AccountStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -33,14 +34,14 @@ public class CreateTransfer {
     }
 
     @Transactional
-    public void create(Transfer transfer, boolean isCompanyUser) {
+    public void execute (Transfer transfer, boolean isCompanyUser) {
         // Corrección 1: Extraemos el valor numérico (.getAmount()) solo para validar que no sea 0 o negativo
         if (transfer.getAmount() == null || transfer.getAmount().getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("El monto de la transferencia debe ser estrictamente mayor que cero.");
         }
 
         BankAccount origin = bankAccountPort.findByAccountNumber(transfer.getOriginAccount());
-        if (origin == null || origin.getAccountStatus().equals("BLOCKED") || origin.getAccountStatus().equals("CANCELED")) {
+        if (origin == null || origin.getAccountStatus() == AccountStatus.BLOCKED || origin.getAccountStatus() == AccountStatus.CANCELED) {
             throw new BusinessException("La cuenta de origen es inválida, bloqueada o cancelada.");
         }
 

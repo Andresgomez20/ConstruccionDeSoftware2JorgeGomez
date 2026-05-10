@@ -28,7 +28,7 @@ public class ApproveTransfer {
     }
 
     @Transactional
-    public void approveOrReject(Long transferId, boolean approve, Long approverUserId) {
+    public void execute (Long transferId, boolean approve, Long approverUserId) {
         Transfer transfer = transferPort.findById(transferId);
         if (transfer == null) {
             throw new BusinessException("Transferencia no encontrada.");
