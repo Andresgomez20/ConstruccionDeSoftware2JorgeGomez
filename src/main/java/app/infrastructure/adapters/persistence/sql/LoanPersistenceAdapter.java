@@ -1,6 +1,7 @@
 package app.infrastructure.adapters.persistence.sql;
 
 import app.domain.models.entities.Loan;
+import app.domain.models.enums.LoanStatus;
 import app.domain.models.vo.Money;
 import app.domain.ports.LoanPort;
 import app.infrastructure.adapters.persistence.sql.entities.LoanEntity;
@@ -8,6 +9,7 @@ import app.infrastructure.adapters.persistence.sql.repositories.LoanRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import  app.domain.models.enums.Currency;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,7 +29,7 @@ public class LoanPersistenceAdapter implements LoanPort {
 
     @Override
     public Loan findById(Long id) {
-        // Estilo imperativo: Abriendo el Optional con un 'if' clásico
+    
         Optional<LoanEntity> entityOptional = repository.findById(id);
         
         if (entityOptional.isPresent()) {
@@ -39,14 +41,12 @@ public class LoanPersistenceAdapter implements LoanPort {
 
     @Override
     public void update(Loan loan) {
-        // Estilo imperativo: Sin lambdas para actualizar
+
         Optional<LoanEntity> entityOptional = repository.findById(loan.getId());
         
         if (entityOptional.isPresent()) {
             LoanEntity existing = entityOptional.get();
             LoanEntity entityToUpdate = toEntity(loan);
-            
-            // Mantenemos el ID original para que MySQL actualice la fila, no cree una nueva
             entityToUpdate.setId(existing.getId()); 
             
             repository.save(entityToUpdate);
@@ -55,13 +55,12 @@ public class LoanPersistenceAdapter implements LoanPort {
 
     @Override
     public List<Loan> findByClientDocument(String document) {
-        // 1. Buscamos en la base de datos
+        // Buscamos en la base de datos
         List<LoanEntity> entities = repository.findByClientDocument(document);
         
-        // 2. Creamos la lista vacía al estilo de la vieja escuela
+        // Creamos la lista vacía 
         List<Loan> domainLoans = new ArrayList<>();
-        
-        // 3. Recorremos con un 'for' tradicional (sin streams)
+        // Convertimos cada entidad a dominio y la agregamos a la lista
         for (LoanEntity entity : entities) {
             domainLoans.add(toDomain(entity));
         }
@@ -69,9 +68,8 @@ public class LoanPersistenceAdapter implements LoanPort {
         return domainLoans;
     }
 
-    // ==========================================
-    // MAPPERS (Transformación entre capas)
-    // ==========================================
+    // MAPPERS
+
 
     private LoanEntity toEntity(Loan loan) {
         if (loan == null) return null;
@@ -80,19 +78,19 @@ public class LoanPersistenceAdapter implements LoanPort {
         entity.setId(loan.getId());
         entity.setClientDocument(loan.getClientDocument());
         entity.setDestinationAccount(loan.getDestinationAccount());
-        entity.setStatus(loan.getStatus());
+        entity.setStatus(loan.getStatus().toString());
         entity.setDisbursementDate(loan.getDisbursementDate());
 
         // Desempaquetando el VO Money (Requested)
         if (loan.getRequestedAmount() != null) {
             entity.setRequestedAmount(loan.getRequestedAmount().getAmount());
-            entity.setRequestedCurrency(loan.getRequestedAmount().getCurrency());
+            entity.setRequestedCurrency(loan.getRequestedAmount().getCurrency().toString());
         }
 
         // Desempaquetando el VO Money (Approved)
         if (loan.getApprovedAmount() != null) {
             entity.setApprovedAmount(loan.getApprovedAmount().getAmount());
-            entity.setApprovedCurrency(loan.getApprovedAmount().getCurrency());
+            entity.setApprovedCurrency(loan.getApprovedAmount().getCurrency().toString());
         }
 
         return entity;
@@ -105,17 +103,17 @@ public class LoanPersistenceAdapter implements LoanPort {
         loan.setId(entity.getId());
         loan.setClientDocument(entity.getClientDocument());
         loan.setDestinationAccount(entity.getDestinationAccount());
-        loan.setStatus(entity.getStatus());
+        loan.setStatus(LoanStatus.valueOf(entity.getStatus()));
         loan.setDisbursementDate(entity.getDisbursementDate());
 
         // Empaquetando el VO Money (Requested)
         if (entity.getRequestedAmount() != null && entity.getRequestedCurrency() != null) {
-            loan.setRequestedAmount(new Money(entity.getRequestedAmount(), entity.getRequestedCurrency()));
+            loan.setRequestedAmount(new Money(entity.getRequestedAmount(), Currency.valueOf(entity.getRequestedCurrency())));
         }
 
         // Empaquetando el VO Money (Approved)
         if (entity.getApprovedAmount() != null && entity.getApprovedCurrency() != null) {
-            loan.setApprovedAmount(new Money(entity.getApprovedAmount(), entity.getApprovedCurrency()));
+            loan.setApprovedAmount(new Money(entity.getApprovedAmount(), Currency.valueOf(entity.getApprovedCurrency())));
         }
 
         return loan;

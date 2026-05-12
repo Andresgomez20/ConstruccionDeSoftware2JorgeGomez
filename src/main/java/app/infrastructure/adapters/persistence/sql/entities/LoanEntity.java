@@ -24,19 +24,19 @@ public class LoanEntity {
     // Guardamos el Money de monto solicitado
     private BigDecimal requestedAmount;
     
-    @Enumerated(EnumType.STRING)
-    private Currency requestedCurrency;
+   // @Enumerated(EnumType.STRING)
+    private String requestedCurrency;
 
     // Guardamos el Money de monto aprobado
     private BigDecimal approvedAmount;
     
-    @Enumerated(EnumType.STRING)
-    private Currency approvedCurrency;
+    //@Enumerated(EnumType.STRING)
+    private String approvedCurrency;
 
     private String destinationAccount;
 
-    @Enumerated(EnumType.STRING)
-    private LoanStatus status;
+    //@Enumerated(EnumType.STRING)
+    private String status;
 
     private LocalDate disbursementDate;
 }

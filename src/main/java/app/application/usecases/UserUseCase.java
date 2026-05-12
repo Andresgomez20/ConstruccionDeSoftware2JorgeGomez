@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 public class UserUseCase {
 
     private final CreateUser createUser;
-    // Aquí podrías inyectar otros servicios como FindUser, UpdateUser, etc.
 
     public UserUseCase(CreateUser createUser) {
         this.createUser = createUser;

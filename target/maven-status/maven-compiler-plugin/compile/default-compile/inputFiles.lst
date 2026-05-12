@@ -32,6 +32,7 @@
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/domain/ports/UserPort.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/domain/services/ApproveLoan.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/domain/services/ApproveTransfer.java
+/Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/domain/services/AuthenticationService.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/domain/services/BlockBankAccount.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/domain/services/CancelBankAccount.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/domain/services/CreateBankAccount.java
@@ -44,12 +45,16 @@
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/domain/services/RegisterNaturalPerson.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/domain/services/RejectLoan.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/domain/services/RequestLoan.java
+/Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/DataSeeder.java
+/Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/api/controllers/AuthController.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/api/controllers/BankAccountController.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/api/controllers/CompanyClientController.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/api/controllers/LoanController.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/api/controllers/NaturalPersonClientController.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/api/controllers/TransferController.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/api/controllers/UserController.java
+/Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/api/dtos/LoginRequest.java
+/Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/api/dtos/LoginResponse.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/persistence/mongodb/LogPersistenceAdapter.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/persistence/mongodb/entities/LogEntity.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/persistence/mongodb/repositories/LogRepository.java
@@ -71,4 +76,5 @@
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/persistence/sql/repositories/NaturalPersonClientRepository.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/persistence/sql/repositories/TransferRepository.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/adapters/persistence/sql/repositories/UserRepository.java
+/Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/security/JwtProvider.java
 /Users/andresgomez/Documents/ConstruccionDeSoftware2JorgeGomez/src/main/java/app/infrastructure/security/SecurityConfig.java
