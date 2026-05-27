@@ -6,10 +6,15 @@ import org.springframework.transaction.annotation.Transactional;
 import app.domain.Exceptions.BusinessException;
 import app.domain.models.entities.BankAccount;
 import app.domain.models.entities.Transfer;
+import app.domain.models.enums.AccountStatus; 
 import app.domain.models.enums.TransferStatus;
+import app.domain.models.identity.User;
+import app.domain.models.vo.Money;
 import app.domain.ports.BankAccountPort;
 import app.domain.ports.TransferPort;
+import app.infrastructure.security.SecurityContext;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,16 +24,30 @@ public class ApproveTransfer {
 
     private final TransferPort transferPort;
     private final BankAccountPort bankAccountPort;
-    private final LogOperation logOperation; 
+    private final LogOperation logOperation;
+    private final AuthorizationService authorizationService;
 
-    public ApproveTransfer(TransferPort transferPort, BankAccountPort bankAccountPort, LogOperation logOperation) {
+    public ApproveTransfer(TransferPort transferPort, BankAccountPort bankAccountPort, 
+                           LogOperation logOperation, AuthorizationService authorizationService) {
         this.transferPort = transferPort;
         this.bankAccountPort = bankAccountPort;
         this.logOperation = logOperation;
+        this.authorizationService = authorizationService;
     }
 
+    /**
+     * Aprueba o rechaza una transferencia validando que el usuario sea COMPANY_SUPERVISOR
+     */
     @Transactional
-    public void execute (Long transferId, boolean approve, Long approverUserId) {
+    public void execute(Long transferId, boolean approve) throws BusinessException {
+        // 1. Obtener usuario y validar permisos
+        User currentUser = SecurityContext.getCurrentUser();
+        if (currentUser == null) {
+            throw new BusinessException("Usuario no autenticado.");
+        }
+        authorizationService.validateTransferApprovalPermission(currentUser);
+
+        // 2. Obtener la transferencia
         Transfer transfer = transferPort.findById(transferId);
         if (transfer == null) {
             throw new BusinessException("Transferencia no encontrada.");
@@ -38,70 +57,97 @@ public class ApproveTransfer {
             throw new BusinessException("La transferencia no está pendiente de aprobación.");
         }
         
-        // ESCENARIO 1: EXPIRACIÓN
+        // ESCENARIO 1: EXPIRACIÓN TARDÍA
         if (transfer.getCreationDate().plusHours(1).isBefore(LocalDateTime.now())) {
             transfer.setStatus(TransferStatus.EXPIRED);
             transferPort.update(transfer);
             
             logOperation.record(
-                approverUserId, 
-                "SYSTEM/SUPERVISOR", 
-                "TRANSFER_EXPIRED", 
+                currentUser.getId(), 
+                currentUser.getRole().name(), 
+                "TRANSFERENCIA_VENCIDA", 
                 transferId.toString(), 
-                Map.of("reason", "Tiempo agotado: Se excedió el límite de 1 hora.")
+                Map.of("motivo", "Falta de aprobación en el tiempo establecido (1 hora)", 
+                       "idUsuarioCreador", transfer.getCreatorUserId()) // <-- Adaptado a lo que pide el doc
             );
             
-            throw new BusinessException("Transferencia expirada por falta de aprobación dentro de 1 hora.");
+            throw new BusinessException("La transferencia expiró por falta de aprobación dentro de la hora límite.");
         }
 
         // ESCENARIO 2: RECHAZO MANUAL
         if (!approve) {
             transfer.setStatus(TransferStatus.REJECTED);
-            transfer.setApproverUserId(approverUserId);
+            transfer.setApproverUserId(currentUser.getId());
             transfer.setApprovalDate(LocalDateTime.now());
             transferPort.update(transfer);
 
             logOperation.record(
-                approverUserId, 
-                "COMPANY_SUPERVISOR", 
-                "TRANSFER_REJECTED", 
+                currentUser.getId(), 
+                currentUser.getRole().name(), 
+                "TRANSFERENCIA_RECHAZADA", 
                 transferId.toString(), 
-                Map.of("amount", transfer.getAmount(), "origin", transfer.getOriginAccount())
+                Map.of("monto", transfer.getAmount(), 
+                       "cuentaOrigen", transfer.getOriginAccount(),
+                       "idAnalistaAprobador", currentUser.getId())
             );
-            return;
+            return; // Salimos aquí si fue rechazada
         }
 
+        // ESCENARIO 3: APROBACIÓN Y EJECUCIÓN
         BankAccount origin = bankAccountPort.findByAccountNumber(transfer.getOriginAccount());
         BankAccount destination = bankAccountPort.findByAccountNumber(transfer.getDestinationAccount());
 
-        if (origin.getCurrentBalance().compareTo(transfer.getAmount()) < 0) {
-             throw new BusinessException("Fondos insuficientes en la cuenta de origen al momento de la aprobación.");
+        if (origin == null || destination == null) {
+            throw new BusinessException("Una de las cuentas involucradas no existe.");
         }
 
-        // Ejecutar transferencia en MySQL
-        origin.setCurrentBalance(origin.getCurrentBalance().subtract(transfer.getAmount()));
-        destination.setCurrentBalance(destination.getCurrentBalance().add(transfer.getAmount()));
+        if (origin.getAccountStatus() == AccountStatus.BLOCKED || origin.getAccountStatus() == AccountStatus.CANCELED) {
+            throw new BusinessException("La cuenta de origen está bloqueada o cancelada. No se permiten operaciones.");
+        }
+        if (destination.getAccountStatus() == AccountStatus.BLOCKED || destination.getAccountStatus() == AccountStatus.CANCELED) {
+            throw new BusinessException("La cuenta de destino está bloqueada o cancelada.");
+        }
+
+        // Extraemos los números de los objetos Money para poder hacer cálculos
+        BigDecimal montoTransferencia = transfer.getAmount().getAmount();
+        BigDecimal saldoAntesOrigen = origin.getCurrentBalance().getAmount();
+        BigDecimal saldoAntesDestino = destination.getCurrentBalance().getAmount();
+
+        if (saldoAntesOrigen.compareTo(montoTransferencia) < 0) {
+            throw new BusinessException("Fondos insuficientes en la cuenta de origen al momento de la aprobación.");
+        }
+
+        BigDecimal nuevoSaldoOrigen = saldoAntesOrigen.subtract(montoTransferencia);
+        BigDecimal nuevoSaldoDestino = saldoAntesDestino.add(montoTransferencia);
         
+        
+        // Reconstruimos el objeto Money con el nuevo valor (BigDecimal) y la moneda original
+        origin.setCurrentBalance(new Money(nuevoSaldoOrigen, origin.getCurrentBalance().getCurrency()));
+        destination.setCurrentBalance(new Money(nuevoSaldoDestino, destination.getCurrentBalance().getCurrency()));
+        
+        // Guardar cuentas
         bankAccountPort.update(origin);
         bankAccountPort.update(destination);
 
+        // Guardar transferencia ejecutada
         transfer.setStatus(TransferStatus.EXECUTED);
-        transfer.setApproverUserId(approverUserId);
+        transfer.setApproverUserId(currentUser.getId());
         transfer.setApprovalDate(LocalDateTime.now());
         transferPort.update(transfer);
 
-        // ESCENARIO 3: EJECUCIÓN EXITOSA
+        // REGISTRO PERFECTO EN BITÁCORA PARA EJECUCIÓN
         Map<String, Object> details = new HashMap<>();
-        details.put("monto", transfer.getAmount());
-        details.put("cuentaOrigen", transfer.getOriginAccount());
-        details.put("cuentaDestino", transfer.getDestinationAccount());
-        details.put("nuevoSaldoOrigen", origin.getCurrentBalance());
-        details.put("statusFinal", "EXECUTED");
+        details.put("montoInvolucrado", montoTransferencia);
+        details.put("saldoAntesOrigen", saldoAntesOrigen);
+        details.put("saldoDespuesOrigen", nuevoSaldoOrigen);
+        details.put("saldoAntesDestino", saldoAntesDestino);
+        details.put("saldoDespuesDestino", nuevoSaldoDestino);
+        details.put("idAnalistaAprobador", currentUser.getId());
 
         logOperation.record(
-            approverUserId, 
-            "COMPANY_SUPERVISOR", 
-            "TRANSFER_APPROVED_AND_EXECUTED", 
+            currentUser.getId(), 
+            currentUser.getRole().name(), 
+            "TRANSFERENCIA_EJECUTADA", 
             transferId.toString(), 
             details
         );

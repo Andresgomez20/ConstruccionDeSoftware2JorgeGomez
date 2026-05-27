@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Component
 public class NaturalPersonClientPersistenceAdapter implements NaturalPersonClientPort {
@@ -21,23 +20,36 @@ public class NaturalPersonClientPersistenceAdapter implements NaturalPersonClien
 
     @Override
     public void save(NaturalPersonClient client) {
-        repository.save(toEntity(client));
+        NaturalPersonClientEntity entityToSave = toEntity(client);
+        
+        if (entityToSave != null) {
+            repository.save(entityToSave);
+        }
     }
 
     // 1. Método requerido: Verificar si existe
     @Override
     public boolean existsByIdentificationNumber(String identificationNumber) {
-        // Al igual que con el NIT, la cédula es nuestra llave primaria (@Id), así que usamos existsById
+        if (identificationNumber == null) {
+            return false;
+        }
         return repository.existsById(identificationNumber);
     }
 
-    // 2. Método requerido: Buscar por Cédula en lugar del "findById" genérico
+    // 2. Método requerido: Buscar por Cédula
     @Override
     public NaturalPersonClient findByIdentificationNumber(String identificationNumber) {
-        Optional<NaturalPersonClientEntity> optional = repository.findById(identificationNumber);
-        if (optional.isPresent()) {
-            return toDomain(optional.get());
+        if (identificationNumber == null) {
+            return null;
         }
+        
+        // Extraemos directamente
+        NaturalPersonClientEntity entity = repository.findById(identificationNumber).orElse(null);
+        
+        if (entity != null) {
+            return toDomain(entity);
+        }
+        
         return null;
     }
 
@@ -54,10 +66,10 @@ public class NaturalPersonClientPersistenceAdapter implements NaturalPersonClien
     }
 
     // MAPPERS TRADICIONALES
-   
 
     private NaturalPersonClientEntity toEntity(NaturalPersonClient domain) {
         if (domain == null) return null;
+        
         NaturalPersonClientEntity entity = new NaturalPersonClientEntity();
         entity.setIdentificationNumber(domain.getIdentificationNumber());
         entity.setFullName(domain.getFullName());
@@ -65,11 +77,13 @@ public class NaturalPersonClientPersistenceAdapter implements NaturalPersonClien
         entity.setPhone(domain.getPhone());
         entity.setBirthDate(domain.getBirthDate());
         entity.setAddress(domain.getAddress());
+        
         return entity;
     }
 
     private NaturalPersonClient toDomain(NaturalPersonClientEntity entity) {
         if (entity == null) return null;
+        
         NaturalPersonClient domain = new NaturalPersonClient();
         domain.setIdentificationNumber(entity.getIdentificationNumber());
         domain.setFullName(entity.getFullName());
@@ -77,6 +91,7 @@ public class NaturalPersonClientPersistenceAdapter implements NaturalPersonClien
         domain.setPhone(entity.getPhone());
         domain.setBirthDate(entity.getBirthDate());
         domain.setAddress(entity.getAddress());
+        
         return domain;
     }
 }

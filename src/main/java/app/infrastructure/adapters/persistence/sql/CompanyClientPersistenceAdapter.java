@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Component
 public class CompanyClientPersistenceAdapter implements CompanyClientPort {
@@ -19,29 +18,44 @@ public class CompanyClientPersistenceAdapter implements CompanyClientPort {
         this.repository = repository;
     }
 
+    // 1. MÉTODO SAVE
     @Override
     public void save(CompanyClient client) {
-        repository.save(toEntity(client));
+        CompanyClientEntity entityToSave = toEntity(client);
+        
+        if (entityToSave != null) {
+            repository.save(entityToSave);
+        }
     }
 
-    // 1. Método requerido: Verificar si existe
+    // 2. MÉTODO REQUERIDO: Verificar si existe
     @Override
     public boolean existsByTaxIdentificationNumber(String nit) {
-        // En Spring Data, como el NIT es el @Id, podemos usar existsById directamente
+        if (nit == null) {
+            return false;
+        }
         return repository.existsById(nit); 
     }
 
-    // 2. Método requerido: Buscar por NIT en lugar del "findById" genérico
+    // 3. MÉTODO REQUERIDO: Buscar por NIT
     @Override
     public CompanyClient findByTaxIdentificationNumber(String nit) {
-        Optional<CompanyClientEntity> optional = repository.findById(nit);
-        if (optional.isPresent()) {
-            return toDomain(optional.get());
+        // Validación imperativa defensiva
+        if (nit == null) {
+            return null;
         }
+        
+        // Ahora el compilador sabe que 'nit' es 100% seguro
+        CompanyClientEntity entity = repository.findById(nit).orElse(null);
+        
+        if (entity != null) {
+            return toDomain(entity);
+        }
+        
         return null;
     }
 
-    // 3. Método requerido: Traer todos
+    // 4. MÉTODO REQUERIDO: Traer todos
     @Override
     public List<CompanyClient> findAll() {
         List<CompanyClientEntity> entities = repository.findAll();
@@ -53,12 +67,11 @@ public class CompanyClientPersistenceAdapter implements CompanyClientPort {
         return domainList;
     }
 
-  
     // MAPPERS TRADICIONALES
-
 
     private CompanyClientEntity toEntity(CompanyClient domain) {
         if (domain == null) return null;
+        
         CompanyClientEntity entity = new CompanyClientEntity();
         entity.setTaxIdentificationNumber(domain.getTaxIdentificationNumber());
         entity.setBusinessName(domain.getBusinessName());
@@ -66,11 +79,13 @@ public class CompanyClientPersistenceAdapter implements CompanyClientPort {
         entity.setPhone(domain.getPhone());
         entity.setAddress(domain.getAddress());
         entity.setLegalRepresentativeId(domain.getLegalRepresentativeId());
+        
         return entity;
     }
 
     private CompanyClient toDomain(CompanyClientEntity entity) {
         if (entity == null) return null;
+        
         CompanyClient domain = new CompanyClient();
         domain.setTaxIdentificationNumber(entity.getTaxIdentificationNumber());
         domain.setBusinessName(entity.getBusinessName());
@@ -78,6 +93,7 @@ public class CompanyClientPersistenceAdapter implements CompanyClientPort {
         domain.setPhone(entity.getPhone());
         domain.setAddress(entity.getAddress());
         domain.setLegalRepresentativeId(entity.getLegalRepresentativeId());
+        
         return domain;
     }
 }

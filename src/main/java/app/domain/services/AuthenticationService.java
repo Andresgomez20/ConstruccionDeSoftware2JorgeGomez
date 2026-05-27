@@ -20,14 +20,8 @@ public class AuthenticationService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Autentica un usuario con username y password
-     *
-     * @param username Nombre de usuario
-     * @param password Contraseña en texto plano
-     * @return Usuario autenticado
-     * @throws BusinessException si las credenciales son inválidas
-     */
+    //Autentica un usuario con username y password
+    
     public User authenticate(String username, String password) throws BusinessException {
         // Validar que los parámetros no sean nulos
         if (username == null || username.isBlank()) {

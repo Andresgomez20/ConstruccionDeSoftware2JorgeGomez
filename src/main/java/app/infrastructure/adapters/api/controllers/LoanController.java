@@ -18,11 +18,11 @@ public class LoanController {
     }
 
     // 1. Endpoint para solicitar un préstamo (Asumiendo que agregarás requestLoan a tu UseCase)
+    // Ejemplo en Postman: POST /api/loans
     @PostMapping
     public ResponseEntity<?> requestLoan(@RequestBody Loan loan) {
         try {
-            // Asume que tienes este método en tu LoanUseCase
-            // loanUseCase.requestLoan(loan);
+            loanUseCase.requestLoan(loan);
             return new ResponseEntity<>("Préstamo solicitado exitosamente", HttpStatus.CREATED);
         } catch (BusinessException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -31,39 +31,58 @@ public class LoanController {
         }
     }
 
-    // 2. Endpoint para aprobar un préstamo
+    /**
+     * Endpoint para aprobar un préstamo
+     * Requiere autenticación con rol INTERNAL_ANALYST
+     * El usuario se obtiene automáticamente del JWT
+     */
+    // Ejemplo: PUT /api/loans/123/approve
     @PutMapping("/{id}/approve")
-    public ResponseEntity<?> approveLoan(@PathVariable Long id, @RequestParam String analystId) {
+    public ResponseEntity<?> approveLoan(@PathVariable Long id) {
         try {
-            // Asume que tienes este método en tu LoanUseCase
-            // loanUseCase.approveLoan(id, analystId);
+            loanUseCase.approveLoan(id);
             return ResponseEntity.ok("Préstamo aprobado exitosamente");
         } catch (BusinessException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error interno: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    // 3. Endpoint para RECHAZAR un préstamo (El servicio que hicimos hoy)
+    /**
+     * Endpoint para RECHAZAR un préstamo
+     * Requiere autenticación con rol INTERNAL_ANALYST
+     * El usuario se obtiene automáticamente del JWT
+     */
+    // Ejemplo: PUT /api/loans/123/reject?reason=Ingresos%20insuficientes
     @PutMapping("/{id}/reject")
     public ResponseEntity<?> rejectLoan(@PathVariable Long id, 
-                                        @RequestParam String analystId, 
                                         @RequestParam String reason) {
         try {
-            loanUseCase.rejectLoan(id, analystId, reason);
+            loanUseCase.rejectLoan(id, reason);
             return ResponseEntity.ok("Préstamo rechazado. Motivo: " + reason);
         } catch (BusinessException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error interno: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    // 4. Endpoint para DESEMBOLSAR un préstamo (El otro servicio que hicimos hoy)
+    /**
+     * Endpoint para DESEMBOLSAR un préstamo
+     * Requiere autenticación con rol INTERNAL_ANALYST
+     * El usuario se obtiene automáticamente del JWT
+     */
+    // Ejemplo: PUT /api/loans/123/disburse
     @PutMapping("/{id}/disburse")
-    public ResponseEntity<?> disburseLoan(@PathVariable Long id, @RequestParam String analystId) {
+    public ResponseEntity<?> disburseLoan(@PathVariable Long id) {
         try {
-            loanUseCase.disburseLoan(id, analystId);
+            loanUseCase.disburseLoan(id);
             return ResponseEntity.ok("Préstamo desembolsado exitosamente en la cuenta destino");
         } catch (BusinessException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error interno: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

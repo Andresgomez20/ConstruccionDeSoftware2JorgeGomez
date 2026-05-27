@@ -299,10 +299,14 @@ public class DataSeeder implements ApplicationRunner {
         transfer1.setApproverUserId(teller.getId());
 
         try {
-            createTransfer.execute(transfer1, false);
+            // Establecer el usuario en SecurityContext para que CreateTransfer lo obtenga
+            app.infrastructure.security.SecurityContext.setCurrentUser(teller);
+            createTransfer.execute(transfer1);
             System.out.println("✓ Transferencia 1 creada (EXECUTED)");
         } catch (Exception e) {
             System.out.println("✗ Error creando transferencia 1: " + e.getMessage());
+        } finally {
+            app.infrastructure.security.SecurityContext.clear();
         }
 
         // Transferencia 2: Cuenta 1 -> Cuenta 2
@@ -317,10 +321,14 @@ public class DataSeeder implements ApplicationRunner {
             transfer2.setCreatorUserId(teller.getId());
 
             try {
-                createTransfer.execute(transfer2, false);
+                // Establecer el usuario en SecurityContext
+                app.infrastructure.security.SecurityContext.setCurrentUser(teller);
+                createTransfer.execute(transfer2);
                 System.out.println("✓ Transferencia 2 creada (PENDING_APPROVAL)");
             } catch (Exception e) {
                 System.out.println("✗ Error creando transferencia 2: " + e.getMessage());
+            } finally {
+                app.infrastructure.security.SecurityContext.clear();
             }
         }
 
@@ -333,14 +341,18 @@ public class DataSeeder implements ApplicationRunner {
             transfer3.setCreationDate(LocalDateTime.now().minusDays(1));
             transfer3.setApprovalDate(LocalDateTime.now().minusDays(1));
             transfer3.setStatus(TransferStatus.EXECUTED);
-            transfer3.setCreatorUserId(teller.getId());
-            transfer3.setApproverUserId(teller.getId());
+            transfer3.setCreatorUserId(users.get(4).getId()); // COMPANY_OPERATOR
+            transfer3.setApproverUserId(users.get(4).getId());
 
             try {
-                createTransfer.execute(transfer3, true);
+                // Establecer usuario empresa/comercial en SecurityContext
+                app.infrastructure.security.SecurityContext.setCurrentUser(users.get(4));
+                createTransfer.execute(transfer3);
                 System.out.println("✓ Transferencia 3 creada (EXECUTED - Empresa)");
             } catch (Exception e) {
                 System.out.println("✗ Error creando transferencia 3: " + e.getMessage());
+            } finally {
+                app.infrastructure.security.SecurityContext.clear();
             }
         }
 
@@ -355,10 +367,14 @@ public class DataSeeder implements ApplicationRunner {
             transfer4.setCreatorUserId(teller.getId());
 
             try {
-                createTransfer.execute(transfer4, false);
+                // Establecer el usuario en SecurityContext
+                app.infrastructure.security.SecurityContext.setCurrentUser(teller);
+                createTransfer.execute(transfer4);
                 System.out.println("✓ Transferencia 4 creada (PENDING_APPROVAL)");
             } catch (Exception e) {
                 System.out.println("✗ Error creando transferencia 4: " + e.getMessage());
+            } finally {
+                app.infrastructure.security.SecurityContext.clear();
             }
         }
     }

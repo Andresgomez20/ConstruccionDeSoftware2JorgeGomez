@@ -2,6 +2,7 @@ app/infrastructure/adapters/api/controllers/CompanyClientController.class
 app/domain/services/CreateUser.class
 app/infrastructure/adapters/persistence/sql/entities/CompanyClientEntity.class
 app/domain/ports/OperationLogPort.class
+app/infrastructure/security/JwtInterceptor.class
 app/infrastructure/adapters/persistence/sql/repositories/CompanyClientRepository.class
 app/domain/models/enums/LoanStatus.class
 app/application/usecases/BankAccountUseCase.class
@@ -22,6 +23,7 @@ app/domain/services/CreateBankAccount.class
 app/infrastructure/adapters/api/controllers/LoanController.class
 app/infrastructure/adapters/persistence/sql/BankAccountPersistenceAdapter.class
 app/BankApplication.class
+app/infrastructure/security/SecurityContext.class
 app/infrastructure/adapters/persistence/sql/entities/NaturalPersonClientEntity.class
 app/infrastructure/adapters/persistence/sql/entities/LoanEntity.class
 app/infrastructure/adapters/persistence/mongodb/LogPersistenceAdapter.class
@@ -66,6 +68,7 @@ app/domain/models/identity/Person.class
 app/domain/models/enums/Currency.class
 app/infrastructure/security/SecurityConfig.class
 app/domain/ports/CompanyClientPort.class
+app/domain/services/AuthorizationService.class
 app/infrastructure/adapters/persistence/sql/entities/BankAccountEntity.class
 app/domain/services/ExpireTransfer.class
 app/domain/models/vo/Money.class

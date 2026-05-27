@@ -1,39 +1,42 @@
 package app.application.usecases;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import app.domain.Exceptions.BusinessException;
+import app.domain.models.entities.Loan;
+import app.domain.services.ApproveLoan;
 import app.domain.services.DisburseLoan;
 import app.domain.services.RejectLoan;
-// Importa aquí tus otros servicios de préstamos como RequestLoan y ApproveLoan cuando los tengas listos
+import app.domain.services.RequestLoan; 
 
 @Service
 public class LoanUseCase {
 
-    @Autowired
-    private DisburseLoan disburseLoan;
-    
-    @Autowired
-    private RejectLoan rejectLoan;
+    private final ApproveLoan approveLoan;
+    private final DisburseLoan disburseLoan;
+    private final RejectLoan rejectLoan;
+    private final RequestLoan requestLoan; 
 
-    // Constructor con inyección de dependencias (igual al de la clínica)
-    public LoanUseCase(DisburseLoan disburseLoan, RejectLoan rejectLoan) {
+    public LoanUseCase(ApproveLoan approveLoan, DisburseLoan disburseLoan, RejectLoan rejectLoan, RequestLoan requestLoan) {
+        this.approveLoan = approveLoan;
         this.disburseLoan = disburseLoan;
         this.rejectLoan = rejectLoan;
+        this.requestLoan = requestLoan;
     }
 
-    // ==========================================
-    // MÉTODOS DEL CASO DE USO (Fachada)
-    // ==========================================
-
-    public void disburseLoan(Long loanId, String analystUserId) throws BusinessException {
-        disburseLoan.execute(loanId, analystUserId);
-    }
-
-    public void rejectLoan(Long loanId, String analystUserId, String reason) throws BusinessException {
-        rejectLoan.execute(loanId, analystUserId, reason);
-    }
     
-    // Aquí puedes agregar los métodos para requestLoan y approveLoan en el futuro
+    public void requestLoan(Loan loan) throws BusinessException {
+        requestLoan.request(loan);
+    }
+
+    public void approveLoan(Long loanId) throws BusinessException {
+        approveLoan.execute(loanId);
+    }
+
+    public void rejectLoan(Long loanId, String reason) throws BusinessException {
+        rejectLoan.execute(loanId, reason);
+    }
+
+    public void disburseLoan(Long loanId) throws BusinessException {
+        disburseLoan.execute(loanId);
+    }
 }

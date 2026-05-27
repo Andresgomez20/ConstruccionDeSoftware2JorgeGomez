@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Component
 public class TransferPersistenceAdapter implements TransferPort {
@@ -23,52 +22,93 @@ public class TransferPersistenceAdapter implements TransferPort {
 
     @Override
     public void save(Transfer transfer) {
-        repository.save(toEntity(transfer));
+        TransferEntity entityToSave = toEntity(transfer);
+        
+        if (entityToSave != null) {
+            repository.save(entityToSave);
+        }
     }
 
     @Override
     public Transfer findById(Long id) {
-        Optional<TransferEntity> optional = repository.findById(id);
-        if (optional.isPresent()) {
-            return toDomain(optional.get());
+        if (id == null) {
+            return null;
         }
+        
+        // Extracción directa
+        TransferEntity entity = repository.findById(id).orElse(null);
+        
+        if (entity != null) {
+            return toDomain(entity);
+        }
+        
         return null;
     }
 
     @Override
     public void update(Transfer transfer) {
-        Optional<TransferEntity> optional = repository.findById(transfer.getId());
-        if (optional.isPresent()) {
-            TransferEntity entity = toEntity(transfer);
-            entity.setId(optional.get().getId());
-            repository.save(entity);
+        if (transfer == null) {
+            return;
+        }
+
+        // 2. Extracción a variable local 
+        Long transferId = transfer.getId();
+        if (transferId == null) {
+            return;
+        }
+
+        // 3. Búsqueda y actualización
+        TransferEntity existing = repository.findById(transferId).orElse(null);
+        
+        if (existing != null) {
+            TransferEntity entityToUpdate = toEntity(transfer);
+            
+            if (entityToUpdate != null) {
+                entityToUpdate.setId(existing.getId());
+                repository.save(entityToUpdate);
+            }
         }
     }
 
     @Override
     public List<Transfer> findByStatus(TransferStatus status) {
-        List<TransferEntity> entities = repository.findByStatus(status);
         List<Transfer> domainList = new ArrayList<>();
+        
+        if (status == null) {
+            return domainList;
+        }
+        
+        List<TransferEntity> entities = repository.findByStatus(status);
         for (TransferEntity entity : entities) {
             domainList.add(toDomain(entity));
         }
+        
         return domainList;
     }
 
     @Override
     public List<Transfer> findByOriginAccount(String account) {
-        List<TransferEntity> entities = repository.findBySourceAccountNumber(account);
         List<Transfer> domainList = new ArrayList<>();
+        
+        if (account == null) {
+            return domainList;
+        }
+        
+        List<TransferEntity> entities = repository.findBySourceAccountNumber(account);
         for (TransferEntity entity : entities) {
             domainList.add(toDomain(entity));
         }
+        
         return domainList;
     }
 
+    // =========================================================
     // MAPPERS
+    // =========================================================
 
     private TransferEntity toEntity(Transfer domain) {
         if (domain == null) return null;
+        
         TransferEntity entity = new TransferEntity();
         
         // Usamos los nombres: Origin, Destination, CreationDate
@@ -87,8 +127,8 @@ public class TransferPersistenceAdapter implements TransferPort {
 
     private Transfer toDomain(TransferEntity entity) {
         if (entity == null) return null;
-        Transfer domain = new Transfer();
         
+        Transfer domain = new Transfer();
         domain.setId(entity.getId());
         
         // Usamos los nombres: Origin, Destination, CreationDate

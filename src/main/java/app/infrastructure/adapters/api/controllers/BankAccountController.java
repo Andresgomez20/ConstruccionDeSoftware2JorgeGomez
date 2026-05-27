@@ -57,4 +57,19 @@ public class BankAccountController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
+    // 4. Endpoint para Buscar una Cuenta Bancaria
+    // Ejemplo: GET /api/bank-accounts/123456789
+    @GetMapping("/{accountNumber}")
+    public ResponseEntity<?> getAccount(@PathVariable String accountNumber) {
+        try {
+            BankAccount account = bankAccountUseCase.findByAccountNumber(accountNumber);
+            if (account == null) {
+                return new ResponseEntity<>("Cuenta no encontrada", HttpStatus.NOT_FOUND);
+            }
+            return ResponseEntity.ok(account);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error interno: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

@@ -7,10 +7,13 @@ import app.domain.Exceptions.BusinessException;
 import app.domain.models.entities.BankAccount;
 import app.domain.models.entities.Transfer;
 import app.domain.models.enums.TransferStatus;
-import app.domain.models.vo.Money;
+import app.domain.models.enums.Role;
+import app.domain.models.vo.Money; 
+import app.domain.models.identity.User;
 import app.domain.ports.BankAccountPort;
 import app.domain.ports.TransferPort;
 import app.domain.models.enums.AccountStatus;
+import app.infrastructure.security.SecurityContext;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,8 +27,8 @@ public class CreateTransfer {
     private final BankAccountPort bankAccountPort;
     private final LogOperation logOperation; 
     
-    // Umbral. Lo dejamos como BigDecimal puro porque es una regla de negocio numérica general
-    private static final BigDecimal APPROVAL_THRESHOLD = new BigDecimal("10000.00"); 
+    // Umbral. Regla de negocio numérica general
+    private static final BigDecimal APPROVAL_THRESHOLD = new BigDecimal("10000000.00"); 
 
     public CreateTransfer(TransferPort transferPort, BankAccountPort bankAccountPort, LogOperation logOperation) {
         this.transferPort = transferPort;
@@ -34,79 +37,126 @@ public class CreateTransfer {
     }
 
     @Transactional
-    public void execute (Transfer transfer, boolean isCompanyUser) {
-        // Corrección 1: Extraemos el valor numérico (.getAmount()) solo para validar que no sea 0 o negativo
-        if (transfer.getAmount() == null || transfer.getAmount().getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+    public void execute(Transfer transfer) throws BusinessException {
+        // 1. Validaciones imperativas de Null-Safety
+        if (transfer == null) {
+            throw new BusinessException("Los datos de la transferencia no pueden ser nulos.");
+        }
+        if (transfer.getOriginAccount() == null || transfer.getDestinationAccount() == null) {
+            throw new BusinessException("Las cuentas de origen y destino son obligatorias.");
+        }
+        if (transfer.getAmount() == null || transfer.getAmount().getAmount() == null) {
+            throw new BusinessException("El monto de la transferencia debe estar definido.");
+        }
+
+        // 2. Obtener el usuario autenticado
+        User currentUser = SecurityContext.getCurrentUser();
+        if (currentUser == null) {
+            throw new BusinessException("Usuario no autenticado.");
+        }
+
+        boolean isCompanyUser = isUserCompanyRole(currentUser.getRole());
+
+        // Extraemos el número puro del Value Object Money de forma segura
+        BigDecimal montoTransferencia = transfer.getAmount().getAmount();
+
+        // 3. Regla de Negocio: Monto válido
+        if (montoTransferencia.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("El monto de la transferencia debe ser estrictamente mayor que cero.");
         }
 
+        // 4. Regla de Negocio: Validar estado de AMBAS cuentas (Operativas)
         BankAccount origin = bankAccountPort.findByAccountNumber(transfer.getOriginAccount());
-        if (origin == null || origin.getAccountStatus() == AccountStatus.BLOCKED || origin.getAccountStatus() == AccountStatus.CANCELED) {
-            throw new BusinessException("La cuenta de origen es inválida, bloqueada o cancelada.");
+        if (origin == null) {
+            throw new BusinessException("La cuenta de origen no fue encontrada.");
+        }
+        if (origin.getAccountStatus() == AccountStatus.BLOCKED || origin.getAccountStatus() == AccountStatus.CANCELED) {
+            throw new BusinessException("La cuenta de origen está bloqueada o cancelada. No se permiten operaciones.");
         }
 
         BankAccount destination = bankAccountPort.findByAccountNumber(transfer.getDestinationAccount());
         if (destination == null) {
-            throw new BusinessException("Cuenta de destino no encontrada.");
+            throw new BusinessException("La cuenta de destino no fue encontrada.");
+        }
+        if (destination.getAccountStatus() == AccountStatus.BLOCKED || destination.getAccountStatus() == AccountStatus.CANCELED) {
+            throw new BusinessException("La cuenta de destino está bloqueada o cancelada. No se permiten operaciones.");
         }
 
-        // Corrección 2: Aquí usamos el compareTo que creaste en la clase Money
-        if (origin.getCurrentBalance().compareTo(transfer.getAmount()) < 0) {
+        // 5. Regla de Negocio: Disponibilidad de Fondos
+        BigDecimal saldoAntesOrigen = origin.getCurrentBalance().getAmount();
+        if (saldoAntesOrigen.compareTo(montoTransferencia) < 0) {
             throw new BusinessException("Fondos insuficientes en la cuenta de origen.");
         }
 
+        // Preparar datos comunes de la transferencia
         transfer.setCreationDate(LocalDateTime.now());
+        transfer.setCreatorUserId(currentUser.getId());
 
-        // MAPA DE DETALLES PARA MONGODB
-        Map<String, Object> details = new HashMap<>();
-        details.put("monto", transfer.getAmount()); // Mongo guardará el objeto Money (monto y moneda)
-        details.put("origen", transfer.getOriginAccount());
-        details.put("destino", transfer.getDestinationAccount());
-        details.put("esEmpresa", isCompanyUser);
-
-        // Corrección 3: Extraemos el valor numérico para compararlo con el umbral de 10,000
-        if (isCompanyUser && transfer.getAmount().getAmount().compareTo(APPROVAL_THRESHOLD) >= 0) {
-            transfer.setStatus(TransferStatus.PENDING_APPROVAL);
+        // 6. FLUJO DE NEGOCIO: Evaluación del Umbral
+        if (isCompanyUser && montoTransferencia.compareTo(APPROVAL_THRESHOLD) >= 0) {
             
-            // Log de espera de aprobación
+            // RAMA A: En espera de aprobación (No se mueve dinero)
+            transfer.setStatus(TransferStatus.PENDING_APPROVAL);
+            transferPort.save(transfer);
+            
+            Map<String, Object> details = new HashMap<>();
+            details.put("monto", montoTransferencia);
+            details.put("origen", transfer.getOriginAccount());
+            details.put("destino", transfer.getDestinationAccount());
             details.put("requiereAprobacion", true);
             details.put("umbralAplicado", APPROVAL_THRESHOLD);
             
             logOperation.record(
-                transfer.getCreatorUserId(), 
-                "COMPANY_USER", 
-                "TRANSFER_QUEUED_FOR_APPROVAL", 
+                currentUser.getId(), 
+                currentUser.getRole().name(), 
+                "TRANSFERENCIA_EN_ESPERA_APROBACION", 
                 transfer.getOriginAccount(), 
                 details
             );
+            
         } else {
-            // Ejecución directa
+            
+            // RAMA B: Ejecución Inmediata
             transfer.setStatus(TransferStatus.EXECUTED);
-            executeTransfer(origin, destination, transfer.getAmount());
+            
+            BigDecimal saldoAntesDestino = destination.getCurrentBalance().getAmount();
+            
+            // Matemática financiera pura
+            BigDecimal nuevoSaldoOrigen = saldoAntesOrigen.subtract(montoTransferencia);
+            BigDecimal nuevoSaldoDestino = saldoAntesDestino.add(montoTransferencia);
+            
+            // Reconstruimos los Value Objects Money como exige tu clase BankAccount
+            origin.setCurrentBalance(new Money(nuevoSaldoOrigen, origin.getCurrentBalance().getCurrency()));
+            destination.setCurrentBalance(new Money(nuevoSaldoDestino, destination.getCurrentBalance().getCurrency()));
+            
+            bankAccountPort.update(origin);
+            bankAccountPort.update(destination);
+            transferPort.save(transfer);
 
-            // Log de ejecución inmediata
-            details.put("requiereAprobacion", false);
-            details.put("nuevoSaldoOrigen", origin.getCurrentBalance());
+            // Registro Exacto solicitado por el documento del Banco
+            Map<String, Object> details = new HashMap<>();
+            details.put("montoInvolucrado", montoTransferencia);
+            details.put("saldoAntesOrigen", saldoAntesOrigen);
+            details.put("saldoDespuesOrigen", nuevoSaldoOrigen);
+            details.put("saldoAntesDestino", saldoAntesDestino);
+            details.put("saldoDespuesDestino", nuevoSaldoDestino);
             
             logOperation.record(
-                transfer.getCreatorUserId(), 
-                isCompanyUser ? "COMPANY_USER" : "NATURAL_USER", 
-                "TRANSFER_EXECUTED_IMMEDIATELY", 
+                currentUser.getId(), 
+                currentUser.getRole().name(), 
+                "TRANSFERENCIA_EJECUTADA_INMEDIATA", 
                 transfer.getOriginAccount(), 
                 details
             );
         }
-
-        transferPort.save(transfer);
     }
 
-    // Corrección 4: Cambiamos el parámetro "BigDecimal" por "Money"
-    private void executeTransfer(BankAccount origin, BankAccount destination, Money amount) {
-        // Corrección 5: Ahora las sumas y restas usan tu objeto Money directamente
-        origin.setCurrentBalance(origin.getCurrentBalance().subtract(amount));
-        destination.setCurrentBalance(destination.getCurrentBalance().add(amount));
-        
-        bankAccountPort.update(origin);
-        bankAccountPort.update(destination);
+    /**
+     * Determina si un rol corresponde a un usuario de empresa
+     */
+    private boolean isUserCompanyRole(Role role) {
+        return role == Role.CLIENT_COMPANY || 
+               role == Role.COMPANY_OPERATOR || 
+               role == Role.COMPANY_SUPERVISOR;
     }
 }

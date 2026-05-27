@@ -26,14 +26,25 @@ public class TransferUseCase {
         this.expireTransfer = expireTransfer;
     }
 
-    public void createTransfer(Transfer transfer, boolean isCompanyUser) throws BusinessException {
-        createTransfer.execute(transfer, isCompanyUser);
+    /**
+     * Crea una transferencia
+     * El usuario se obtiene del contexto de seguridad (JWT)
+     */
+    public void createTransfer(Transfer transfer) throws BusinessException {
+        createTransfer.execute(transfer);
     }
 
-    public void approveTransfer(Long transferId, boolean isCompanyUser, Long analystId) throws BusinessException {
-        approveTransfer.execute(transferId, isCompanyUser, analystId);
+    /**
+     * Aprueba o rechaza una transferencia
+     * Requiere que el usuario sea COMPANY_SUPERVISOR
+     */
+    public void approveTransfer(Long transferId, boolean approve) throws BusinessException {
+        approveTransfer.execute(transferId, approve);
     }
 
+    /**
+     * Expira una transferencia
+     */
     public void expireTransfer(Long transferId) throws BusinessException {
         expireTransfer.execute(transferId);
     }

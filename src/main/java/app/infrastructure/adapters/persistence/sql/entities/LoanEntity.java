@@ -1,17 +1,11 @@
 package app.infrastructure.adapters.persistence.sql.entities;
 
-import app.domain.models.enums.LoanStatus;
-import app.domain.models.enums.Currency;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "loans")
-@Getter
-@Setter
 public class LoanEntity {
     
     @Id
@@ -21,22 +15,55 @@ public class LoanEntity {
     @Column(nullable = false)
     private String clientDocument;
 
-    // Guardamos el Money de monto solicitado
+    // Monto solicitado (Obligatorio)
+    @Column(nullable = false)
     private BigDecimal requestedAmount;
     
-   // @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private String requestedCurrency;
 
-    // Guardamos el Money de monto aprobado
+    // Monto aprobado (Puede estar nulo al principio si el préstamo está "En estudio")
+    @Column(nullable = true)
     private BigDecimal approvedAmount;
     
-    //@Enumerated(EnumType.STRING)
+    @Column(nullable = true)
     private String approvedCurrency;
 
+    @Column(nullable = false)
     private String destinationAccount;
 
-    //@Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private String status;
 
+    @Column(nullable = false)
     private LocalDate disbursementDate;
+    
+    public LoanEntity() {}
+    
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    
+    public String getClientDocument() { return clientDocument; }
+    public void setClientDocument(String clientDocument) { this.clientDocument = clientDocument; }
+    
+    public BigDecimal getRequestedAmount() { return requestedAmount; }
+    public void setRequestedAmount(BigDecimal requestedAmount) { this.requestedAmount = requestedAmount; }
+    
+    public String getRequestedCurrency() { return requestedCurrency; }
+    public void setRequestedCurrency(String requestedCurrency) { this.requestedCurrency = requestedCurrency; }
+    
+    public BigDecimal getApprovedAmount() { return approvedAmount; }
+    public void setApprovedAmount(BigDecimal approvedAmount) { this.approvedAmount = approvedAmount; }
+    
+    public String getApprovedCurrency() { return approvedCurrency; }
+    public void setApprovedCurrency(String approvedCurrency) { this.approvedCurrency = approvedCurrency; }
+    
+    public String getDestinationAccount() { return destinationAccount; }
+    public void setDestinationAccount(String destinationAccount) { this.destinationAccount = destinationAccount; }
+    
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    
+    public LocalDate getDisbursementDate() { return disbursementDate; }
+    public void setDisbursementDate(LocalDate disbursementDate) { this.disbursementDate = disbursementDate; }
 }

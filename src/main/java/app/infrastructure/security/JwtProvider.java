@@ -2,7 +2,6 @@ package app.infrastructure.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -41,7 +40,7 @@ public class JwtProvider {
     }
 
     /**
-     * Crea un token JWT con los claims especificados
+     * Crea un token JWT con los claims especificados usando la API moderna (0.12+)
      *
      * @param claims   Mapa de claims adicionales
      * @param subject  Usuario (subject del token)
@@ -53,20 +52,18 @@ public class JwtProvider {
 
         SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes());
 
+        // Usamos la nueva sintaxis fluida sin el prefijo "set"
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(key, SignatureAlgorithm.HS256)
+                .claims(claims)
+                .subject(subject)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(key) // El algoritmo se infiere automáticamente de la llave
                 .compact();
     }
 
     /**
      * Extrae el usuario (subject) del token
-     *
-     * @param token JWT token
-     * @return Username del token
      */
     public String getUsernameFromToken(String token) {
         return getClaims(token).getSubject();
@@ -74,9 +71,6 @@ public class JwtProvider {
 
     /**
      * Extrae el rol del token
-     *
-     * @param token JWT token
-     * @return Rol del usuario
      */
     public String getRoleFromToken(String token) {
         return (String) getClaims(token).get("role");
@@ -84,9 +78,6 @@ public class JwtProvider {
 
     /**
      * Extrae el documento del token
-     *
-     * @param token JWT token
-     * @return Documento de identificación del usuario
      */
     public String getDocumentFromToken(String token) {
         return (String) getClaims(token).get("document");
@@ -94,9 +85,6 @@ public class JwtProvider {
 
     /**
      * Valida si el token es válido
-     *
-     * @param token JWT token
-     * @return true si el token es válido, false en caso contrario
      */
     public boolean validateToken(String token) {
         try {
@@ -113,9 +101,6 @@ public class JwtProvider {
 
     /**
      * Extrae los claims del token
-     *
-     * @param token JWT token
-     * @return Claims del token
      */
     private Claims getClaims(String token) {
         SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes());

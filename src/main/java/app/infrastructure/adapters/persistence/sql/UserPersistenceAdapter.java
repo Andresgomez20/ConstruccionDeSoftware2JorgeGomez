@@ -6,8 +6,8 @@ import app.infrastructure.adapters.persistence.sql.entities.UserEntity;
 import app.infrastructure.adapters.persistence.sql.repositories.UserRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class UserPersistenceAdapter implements UserPort {
@@ -20,49 +20,74 @@ public class UserPersistenceAdapter implements UserPort {
 
     @Override
     public boolean existsByIdentificationId(String identificationId) {
+        if (identificationId == null) return false;
         return repository.existsByIdentificationId(identificationId);
     }
 
     @Override
     public boolean existsByUsername(String username) {
+        if (username == null) return false;
         return repository.existsByUsername(username);
     }
 
     @Override
     public boolean existsByEmail(String email) {
+        if (email == null) return false;
         return repository.existsByEmail(email);
     }
 
     @Override
     public void save(User user) {
-        repository.save(toEntity(user));
+        UserEntity entityToSave = toEntity(user);
+        
+        if (entityToSave != null) {
+            repository.save(entityToSave);
+        }
     }
 
     @Override
     public void update(User user) {
         // En JPA save hace update si el ID existe
-        repository.save(toEntity(user));
+        UserEntity entityToUpdate = toEntity(user);
+        
+        if (entityToUpdate != null) {
+            repository.save(entityToUpdate);
+        }
     }
 
     @Override
     public User findByIdentificationId(String identificationId) {
-        return repository.findByIdentificationId(identificationId)
-                .map(this::toDomain)
-                .orElse(null);
+        if (identificationId == null) return null;
+        
+        UserEntity entity = repository.findByIdentificationId(identificationId).orElse(null);
+        
+        if (entity != null) {
+            return toDomain(entity);
+        }
+        return null;
     }
 
     @Override
     public User findByUsername(String username) {
-        return repository.findByUsername(username)
-                .map(this::toDomain)
-                .orElse(null);
+        if (username == null) return null;
+        
+        UserEntity entity = repository.findByUsername(username).orElse(null);
+        
+        if (entity != null) {
+            return toDomain(entity);
+        }
+        return null;
     }
 
     @Override
     public List<User> findAll() {
-        return repository.findAll().stream()
-                .map(this::toDomain)
-                .collect(Collectors.toList());
+        List<UserEntity> entities = repository.findAll();
+        List<User> domainUsers = new ArrayList<>();
+        
+        for (UserEntity entity : entities) {
+            domainUsers.add(toDomain(entity));
+        }
+        return domainUsers;
     }
 
     // --- MAPPERS ---

@@ -2,6 +2,7 @@ package app.infrastructure.adapters.persistence.sql;
 
 import app.domain.models.entities.Loan;
 import app.domain.models.enums.LoanStatus;
+import app.domain.models.enums.Currency;
 import app.domain.models.vo.Money;
 import app.domain.ports.LoanPort;
 import app.infrastructure.adapters.persistence.sql.entities.LoanEntity;
@@ -9,9 +10,7 @@ import app.infrastructure.adapters.persistence.sql.repositories.LoanRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import  app.domain.models.enums.Currency;
 import java.util.List;
-import java.util.Optional;
 
 @Component
 public class LoanPersistenceAdapter implements LoanPort {
@@ -24,43 +23,65 @@ public class LoanPersistenceAdapter implements LoanPort {
 
     @Override
     public void save(Loan loan) {
-        repository.save(toEntity(loan));
+        LoanEntity entityToSave = toEntity(loan);
+        
+        if (entityToSave != null) {
+            repository.save(entityToSave);
+        }
     }
 
     @Override
     public Loan findById(Long id) {
-    
-        Optional<LoanEntity> entityOptional = repository.findById(id);
+        if (id == null) {
+            return null;
+        }
+        LoanEntity entity = repository.findById(id).orElse(null);
         
-        if (entityOptional.isPresent()) {
-            return toDomain(entityOptional.get());
+        if (entity != null) {
+            return toDomain(entity);
         }
         
-        return null; // Si no existe, devolvemos null 
+        return null; 
     }
 
     @Override
     public void update(Loan loan) {
+        // 1. Validación de seguridad inicial
+        if (loan == null) {
+            return;
+        }
 
-        Optional<LoanEntity> entityOptional = repository.findById(loan.getId());
+        // 2. Extraemos el ID
+        Long loanId = loan.getId();
         
-        if (entityOptional.isPresent()) {
-            LoanEntity existing = entityOptional.get();
+        // 3. Validamos la variable local
+        if (loanId == null) {
+            return;
+        }
+
+        // 4. Extracción directa del préstamo existente para asegurar que el ID es correcto
+        LoanEntity existing = repository.findById(loanId).orElse(null);
+        
+        if (existing != null) {
             LoanEntity entityToUpdate = toEntity(loan);
-            entityToUpdate.setId(existing.getId()); 
             
-            repository.save(entityToUpdate);
+            if (entityToUpdate != null) {
+                entityToUpdate.setId(existing.getId()); 
+                repository.save(entityToUpdate);
+            }
         }
     }
 
     @Override
     public List<Loan> findByClientDocument(String document) {
-        // Buscamos en la base de datos
+        List<Loan> domainLoans = new ArrayList<>();
+        
+        if (document == null) {
+            return domainLoans;
+        }
+        
         List<LoanEntity> entities = repository.findByClientDocument(document);
         
-        // Creamos la lista vacía 
-        List<Loan> domainLoans = new ArrayList<>();
-        // Convertimos cada entidad a dominio y la agregamos a la lista
         for (LoanEntity entity : entities) {
             domainLoans.add(toDomain(entity));
         }
@@ -68,8 +89,9 @@ public class LoanPersistenceAdapter implements LoanPort {
         return domainLoans;
     }
 
-    // MAPPERS
-
+    // =========================================================
+    // MAPPERS (Conversiones seguras entre Dominio y Persistencia)
+    // =========================================================
 
     private LoanEntity toEntity(Loan loan) {
         if (loan == null) return null;
@@ -78,19 +100,27 @@ public class LoanPersistenceAdapter implements LoanPort {
         entity.setId(loan.getId());
         entity.setClientDocument(loan.getClientDocument());
         entity.setDestinationAccount(loan.getDestinationAccount());
-        entity.setStatus(loan.getStatus().toString());
+        
+        if (loan.getStatus() != null) {
+            entity.setStatus(loan.getStatus().toString());
+        }
+        
         entity.setDisbursementDate(loan.getDisbursementDate());
 
-        // Desempaquetando el VO Money (Requested)
+        // Desempaquetando el VO Money (Requested) de forma defensiva
         if (loan.getRequestedAmount() != null) {
             entity.setRequestedAmount(loan.getRequestedAmount().getAmount());
-            entity.setRequestedCurrency(loan.getRequestedAmount().getCurrency().toString());
+            if (loan.getRequestedAmount().getCurrency() != null) {
+                entity.setRequestedCurrency(loan.getRequestedAmount().getCurrency().toString());
+            }
         }
 
-        // Desempaquetando el VO Money (Approved)
+        // Desempaquetando el VO Money (Approved) de forma defensiva
         if (loan.getApprovedAmount() != null) {
             entity.setApprovedAmount(loan.getApprovedAmount().getAmount());
-            entity.setApprovedCurrency(loan.getApprovedAmount().getCurrency().toString());
+            if (loan.getApprovedAmount().getCurrency() != null) {
+                entity.setApprovedCurrency(loan.getApprovedAmount().getCurrency().toString());
+            }
         }
 
         return entity;
@@ -103,7 +133,11 @@ public class LoanPersistenceAdapter implements LoanPort {
         loan.setId(entity.getId());
         loan.setClientDocument(entity.getClientDocument());
         loan.setDestinationAccount(entity.getDestinationAccount());
-        loan.setStatus(LoanStatus.valueOf(entity.getStatus()));
+        
+        if (entity.getStatus() != null) {
+            loan.setStatus(LoanStatus.valueOf(entity.getStatus()));
+        }
+        
         loan.setDisbursementDate(entity.getDisbursementDate());
 
         // Empaquetando el VO Money (Requested)

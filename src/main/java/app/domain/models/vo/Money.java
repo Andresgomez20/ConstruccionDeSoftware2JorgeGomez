@@ -3,12 +3,10 @@ package app.domain.models.vo;
 import app.domain.models.enums.Currency;
 import app.domain.Exceptions.BusinessException;
 import com.fasterxml.jackson.annotation.JsonCreator; 
-import com.fasterxml.jackson.annotation.JsonProperty; 
-import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.util.Objects;
 
-@Getter
 public class Money {
     private final BigDecimal amount;
     private final Currency currency;
@@ -29,7 +27,14 @@ public class Money {
         this.currency = currency;
     }
 
-    
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public Currency getCurrency() {
+        return currency;
+    }
+
     public Money add(Money other) {
         checkCurrency(other);
         return new Money(this.amount.add(other.getAmount()), this.currency);

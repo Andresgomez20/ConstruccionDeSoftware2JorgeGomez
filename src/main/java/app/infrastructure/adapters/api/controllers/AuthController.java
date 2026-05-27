@@ -36,7 +36,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
-            // Validar que la solicitud no sea nula
+            // Validación imperativa clásica
             if (loginRequest == null || loginRequest.getUsername() == null || loginRequest.getPassword() == null) {
                 return new ResponseEntity<>(
                     new LoginResponse("Error", null, null, null, null, "Username y password son requeridos."),
@@ -116,13 +116,14 @@ public class AuthController {
 
     /**
      * Clase interna para respuesta de validación de token
+     * (Pública y con Getters para que Jackson pueda armar el JSON)
      */
-    private static class ValidationResponse {
-        public String message;
-        public boolean valid;
-        public String username;
-        public String role;
-        public String document;
+    public static class ValidationResponse {
+        private String message;
+        private boolean valid;
+        private String username;
+        private String role;
+        private String document;
 
         public ValidationResponse(String message, boolean valid, String username, String role, String document) {
             this.message = message;
@@ -130,6 +131,27 @@ public class AuthController {
             this.username = username;
             this.role = role;
             this.document = document;
+        }
+
+        // Getters clásicos que eliminan los warnings de uso
+        public String getMessage() {
+            return message;
+        }
+
+        public boolean isValid() {
+            return valid;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public String getRole() {
+            return role;
+        }
+
+        public String getDocument() {
+            return document;
         }
     }
 }

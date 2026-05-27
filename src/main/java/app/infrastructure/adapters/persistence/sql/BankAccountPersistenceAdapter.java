@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Component
 public class BankAccountPersistenceAdapter implements BankAccountPort {
@@ -20,37 +19,38 @@ public class BankAccountPersistenceAdapter implements BankAccountPort {
         this.repository = repository;
     }
 
+    // 1. ÚNICO MÉTODO FIND
     @Override
     public BankAccount findByAccountNumber(String accountNumber) {
-        // Estilo imperativo: Abriendo la caja del Optional con un 'if'
-        Optional<BankAccountEntity> entityOptional = repository.findByAccountNumber(accountNumber);
+        BankAccountEntity entity = repository.findByAccountNumber(accountNumber).orElse(null);
         
-        if (entityOptional.isPresent()) {
-            return toDomain(entityOptional.get());
+        if (entity != null) {
+            return toDomain(entity);
         }
         
         return null;
     }
 
+    // 2. MÉTODO SAVE 
     @Override
-    public void update(BankAccount account) {
-        // Estilo imperativo: Sin usar lambdas (.ifPresent)
-        Optional<BankAccountEntity> entityOptional = repository.findByAccountNumber(account.getAccountNumber());
+    public void save(BankAccount account) {
+        BankAccountEntity entityToSave = toEntity(account);
         
-        if (entityOptional.isPresent()) {
-            BankAccountEntity existing = entityOptional.get();
-            BankAccountEntity entityToUpdate = toEntity(account);
-            
-            // Le pasamos el ID de la base de datos para que JPA sepa que debe actualizar, no crear uno nuevo
-            entityToUpdate.setId(existing.getId()); 
-            
-            repository.save(entityToUpdate);
+        if (entityToSave != null) {
+            repository.save(entityToSave);
         }
     }
 
+    // 3. MÉTODO UPDATE 
     @Override
-    public void save(BankAccount account) {
-        repository.save(toEntity(account));
+    public void update(BankAccount account) {
+        BankAccountEntity existing = repository.findByAccountNumber(account.getAccountNumber()).orElse(null);
+        
+        if (existing != null) {
+            BankAccountEntity entityToUpdate = toEntity(account);
+            entityToUpdate.setId(existing.getId()); 
+            repository.save(entityToUpdate);
+        }
     }
 
     @Override
@@ -62,13 +62,9 @@ public class BankAccountPersistenceAdapter implements BankAccountPort {
     public List<BankAccount> findByTitularId(String titularId) {
         Long ownerId = Long.parseLong(titularId);
         
-        // 1. Buscamos en base de datos
         List<BankAccountEntity> entities = repository.findByTitularId(ownerId);
-        
-        // 2. Creamos lista vacía (Estilo clásico, nada de streams)
         List<BankAccount> domainAccounts = new ArrayList<>();
         
-        // 3. Recorremos con un for-each tradicional
         for (BankAccountEntity entity : entities) {
             BankAccount domain = toDomain(entity);
             domainAccounts.add(domain);
@@ -77,16 +73,16 @@ public class BankAccountPersistenceAdapter implements BankAccountPort {
         return domainAccounts;
     }
 
-    // MAPPERS (Conversión de capas)
+    // MAPPERS (Conversión limpia entre la Capa de Dominio y de Persistencia)
 
     private BankAccount toDomain(BankAccountEntity entity) {
+        if (entity == null) return null;
+        
         BankAccount domain = new BankAccount();
         domain.setAccountNumber(entity.getAccountNumber());
         domain.setCurrentBalance(new Money(entity.getBalanceAmount(), entity.getBalanceCurrency()));
         domain.setAccountType(entity.getAccountType());
         domain.setAccountStatus(entity.getAccountStatus());
-        
-        // ¡No olvidemos los campos que faltaban!
         domain.setTitularId(String.valueOf(entity.getTitularId()));
         domain.setOpeningDate(entity.getOpeningDate());
         
@@ -94,10 +90,16 @@ public class BankAccountPersistenceAdapter implements BankAccountPort {
     }
 
     private BankAccountEntity toEntity(BankAccount account) {
+        if (account == null) return null;
+        
         BankAccountEntity entity = new BankAccountEntity();
         entity.setAccountNumber(account.getAccountNumber());
-        entity.setBalanceAmount(account.getCurrentBalance().getAmount());
-        entity.setBalanceCurrency(account.getCurrentBalance().getCurrency());
+        
+        if (account.getCurrentBalance() != null) {
+            entity.setBalanceAmount(account.getCurrentBalance().getAmount());
+            entity.setBalanceCurrency(account.getCurrentBalance().getCurrency());
+        }
+        
         entity.setAccountType(account.getAccountType());
         entity.setAccountStatus(account.getAccountStatus());
         

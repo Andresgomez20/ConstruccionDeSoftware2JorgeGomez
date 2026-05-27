@@ -2,23 +2,32 @@ package app.application.usecases;
 
 import app.domain.Exceptions.BusinessException;
 import app.domain.models.entities.NaturalPersonClient;
-import app.domain.services.RegisterNaturalPerson; // <-- Usamos tu nombre real
-import org.springframework.beans.factory.annotation.Autowired;
+import app.domain.services.RegisterNaturalPerson;
+import app.domain.ports.NaturalPersonClientPort; 
 import org.springframework.stereotype.Service;
 
 @Service
 public class NaturalPersonClientUseCase {
 
-    @Autowired
-    private RegisterNaturalPerson registerClient;
+    private final RegisterNaturalPerson registerClient;
+    private final NaturalPersonClientPort naturalPersonClientPort;
 
-    public NaturalPersonClientUseCase(RegisterNaturalPerson registerClient) {
+    public NaturalPersonClientUseCase(RegisterNaturalPerson registerClient, NaturalPersonClientPort naturalPersonClientPort) {
         this.registerClient = registerClient;
+        this.naturalPersonClientPort = naturalPersonClientPort;
     }
 
+    /**
+     * Registra un cliente persona natural delegando al servicio del dominio
+     */
     public void registerNaturalPersonClient(NaturalPersonClient client) throws BusinessException {
-        registerClient.execute(client); // <-- Llamamos a execute
+        registerClient.execute(client); 
     }
-    
-    // (Si tienes un servicio para buscar, lo agregas aquí después)
+
+    /**
+     * Busca un cliente persona natural de forma directa desde el puerto
+     */
+    public NaturalPersonClient findByIdentificationNumber(String identificationNumber) {
+        return naturalPersonClientPort.findByIdentificationNumber(identificationNumber);
+    }
 }
